@@ -6,7 +6,10 @@ import 'package:town_pass/util/tp_web_view.dart';
 
 /// 只載入獨立部署的 HTTPS 服務，不封裝網頁或照護規則。
 class CarePassView extends StatelessWidget {
-  static const String configuredUrl = String.fromEnvironment('CAREPASS_URL');
+  static const String configuredUrl = String.fromEnvironment(
+    'CAREPASS_URL',
+    defaultValue: 'https://townpass2026-starter.vercel.app/#home',
+  );
 
   final String serviceUrl;
 

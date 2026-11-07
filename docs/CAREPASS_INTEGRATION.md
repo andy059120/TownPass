@@ -11,24 +11,24 @@ TownPass 不包含照護通 HTML 或資料快照，也不需 Node.js。App 透�
 
 ## 設定與啟動
 
-先依網站 repository 的 `carepass/DEPLOYMENT.md` 部署服務，再於本 repository 根目錄執行（將範例網域換成實際網址）：
+App 預設開啟 `https://townpass2026-starter.vercel.app/#home`。於本 repository 根目錄執行：
 
 ```bash
 flutter pub get
 dart run build_runner build
-flutter run --dart-define=CAREPASS_URL=https://your-project.vercel.app/
+flutter run
 ```
 
-發佈建置也必須傳入相同設定，例如：
+發佈建置也會使用同一個正式網址：
 
 ```bash
-flutter build apk --dart-define=CAREPASS_URL=https://your-project.vercel.app/
-flutter build ipa --dart-define=CAREPASS_URL=https://your-project.vercel.app/
+flutter build apk
+flutter build ipa
 ```
 
 依 `.fvmrc` 選用 Flutter；使用 FVM 時在 Flutter／Dart 指令前加上 `fvm`。
 
-`CAREPASS_URL` 是編譯時設定，不是 Vercel 環境變數。網址未設定、不是 HTTPS 或夾帶帳密時，App 顯示服務尚未設定；不會退回內建網頁。載入發生主頁網路或 HTTP 錯誤時，顯示提示與「重新載入」。
+如需切換測試服務，可用 `flutter run --dart-define=CAREPASS_URL=https://your-project.vercel.app/#home` 覆寫；APK／IPA 建置同樣支援此參數。`CAREPASS_URL` 是編譯時設定，不是 Vercel 環境變數。未傳入時使用上述正式網址；若明確傳入空值、非 HTTPS 或夾帶帳密的網址，App 顯示服務尚未設定。載入發生主頁網路或 HTTP 錯誤時，顯示提示與「重新載入」。
 
 開啟 App 後，從「服務 ＞ 熱門 ＞ 照護通」，或「服務 ＞ 更多 ＞ 防疫醫療」進入。網站在同一網址更新後，不需重新建置 App；更換網址才需更新 `CAREPASS_URL` 並重新建置。
 

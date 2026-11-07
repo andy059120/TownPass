@@ -8,7 +8,7 @@ Open source is a key driver of technological progress and social development. Th
 
 # Getting Started
 
-照護通 CarePass 的遠端服務設定、執行與測試請見 [整合說明](docs/CAREPASS_INTEGRATION.md)。網站由獨立的 `townpass2026-starter` repository 部署，App 需指定 `CAREPASS_URL`。
+照護通 CarePass 的遠端服務設定、執行與測試請見 [整合說明](docs/CAREPASS_INTEGRATION.md)。網站由獨立的 `townpass2026-starter` repository 部署，App 預設載入 `https://townpass2026-starter.vercel.app/#home`，可用 `CAREPASS_URL` 覆寫。
 
 We highly recommend to read through our [document](https://tpe-guideline.web.app/en/docs/) for more detail.
 

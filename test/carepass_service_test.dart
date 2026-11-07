@@ -78,9 +78,7 @@ void main() {
       MaterialApp(
         home: Builder(
           builder: (context) {
-            view = const CarePassView(
-              serviceUrl: 'https://carepass.example.com/',
-            ).build(context);
+            view = const CarePassView().build(context);
             return const SizedBox.shrink();
           },
         ),
@@ -88,7 +86,10 @@ void main() {
     );
     expect(view, isA<TPWebView>());
     final webView = view as TPWebView;
-    expect(webView.initialArgument?.url, 'https://carepass.example.com/');
+    expect(
+      webView.initialArgument?.url,
+      'https://townpass2026-starter.vercel.app/#home',
+    );
     expect(webView.initialArgument?.forceTitle, '照護通 CarePass');
     expect(webView.loadErrorMessage, isNotEmpty);
   });

@@ -42,7 +42,7 @@ void main() {
     expect(
       CarePassView.parseServiceUrl(CarePassView.configuredUrl),
       isNotNull,
-      reason: '整合測試須以 --dart-define=CAREPASS_URL=實際HTTPS網址 指定測試服務。',
+      reason: '整合測試需要有效的 HTTPS 服務網址，可用 CAREPASS_URL 指定測試服務。',
     );
     await app.initServices();
     // 使用實際路由與服務畫面，略過與此測試無關的啟動通知權限要求。
