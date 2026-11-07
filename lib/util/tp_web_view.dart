@@ -7,6 +7,7 @@ import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:get/get.dart';
 import 'package:town_pass/gen/assets.gen.dart';
 import 'package:town_pass/util/tp_app_bar.dart';
+import 'package:town_pass/util/tp_button.dart';
 import 'package:town_pass/util/tp_colors.dart';
 import 'package:town_pass/util/web_message_handler/tp_web_message_listener.dart';
 
@@ -14,10 +15,7 @@ class WebViewArgument {
   final String? url;
   final String? forceTitle;
 
-  const WebViewArgument({
-    this.url,
-    this.forceTitle,
-  });
+  const WebViewArgument({this.url, this.forceTitle});
 }
 
 /// App 內開網頁使用，可使用 `openUrl` 並以 `url` 為參數帶入開啟網頁： \
@@ -28,23 +26,46 @@ class WebViewArgument {
 /// ```
 class TPWebView extends StatelessWidget {
   final TPAppBarController? titleController;
+  final WebViewArgument? initialArgument;
+  final String? loadErrorMessage;
 
   TPWebView({
     super.key,
     this.titleController,
+    this.initialArgument,
+    this.loadErrorMessage,
   });
 
-  String get url => (Get.arguments as WebViewArgument?)?.url ?? '';
+  WebViewArgument? get argument =>
+      initialArgument ?? (Get.arguments as WebViewArgument?);
 
-  String? get forceTitle => (Get.arguments as WebViewArgument?)?.forceTitle;
+  String get url => argument?.url ?? '';
+
+  String? get forceTitle => argument?.forceTitle;
 
   final TPAppBarController _defaultTitleController = TPAppBarController();
 
-  TPAppBarController get appBarController => titleController ?? _defaultTitleController;
+  TPAppBarController get appBarController =>
+      titleController ?? _defaultTitleController;
 
-  final Rxn<InAppWebViewController> webViewController = Rxn<InAppWebViewController>();
+  final Rxn<InAppWebViewController> webViewController =
+      Rxn<InAppWebViewController>();
 
   final RxBool canGoBack = RxBool(false);
+  final RxBool _loadFailed = RxBool(false);
+
+  Future<void> _loadUrl(InAppWebViewController controller) async {
+    _loadFailed.value = false;
+    try {
+      await controller.loadUrl(urlRequest: URLRequest(url: WebUri(url)));
+    } catch (_) {
+      if (loadErrorMessage != null) {
+        _loadFailed.value = true;
+      } else {
+        await controller.loadData(data: _failedToLoadUrlData(url: url));
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -55,12 +76,12 @@ class TPWebView extends StatelessWidget {
         leading: Obx(
           () => switch (canGoBack.value) {
             true => IconButton(
-                icon: Assets.svg.expand.svg(),
-                onPressed: () async => await webViewController.value?.goBack(),
-                style: const ButtonStyle(
-                  iconSize: WidgetStatePropertyAll<double>(24),
-                ),
+              icon: Assets.svg.expand.svg(),
+              onPressed: () async => await webViewController.value?.goBack(),
+              style: const ButtonStyle(
+                iconSize: WidgetStatePropertyAll<double>(24),
               ),
+            ),
             false => const SizedBox.shrink(),
           },
         ),
@@ -73,32 +94,82 @@ class TPWebView extends StatelessWidget {
             ),
           ),
         ],
-        title: appBarController.title.value,
+        title: forceTitle ?? appBarController.title.value,
         controller: appBarController,
       ),
-      body: TPInAppWebView(
-        onWebViewCreated: (controller) {
-          webViewController.value = controller;
-          try {
-            controller.loadUrl(urlRequest: URLRequest(url: WebUri(url)));
-          } catch (_) {
-            controller.loadData(data: _failedToLoadUrlData(url: url));
-          }
-        },
-        onUpdateVisitedHistory: (_, __, ___) async {
-          canGoBack.value = await webViewController.value?.canGoBack() ?? false;
-        },
-        onTitleChanged: (_, title) {
-          appBarController.title.value = switch (forceTitle == null) {
-            true => title,
-            false => forceTitle,
-          };
-        },
-        onGeolocationPermissionsShowPrompt: (controller, origin) async {
-          // should be deal individually (ask for user agreement)
-          return GeolocationPermissionShowPromptResponse(origin: origin, allow: true, retain: true);
-        },
-        onCloseWindow: (_) => Get.back(),
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          TPInAppWebView(
+            initialSettings: InAppWebViewSettings(domStorageEnabled: true),
+            onWebViewCreated: (controller) {
+              webViewController.value = controller;
+              appBarController.title.value = forceTitle;
+              _loadUrl(controller);
+            },
+            onReceivedError: (_, request, error) {
+              if (loadErrorMessage != null &&
+                  request.isForMainFrame == true &&
+                  error.type != WebResourceErrorType.CANCELLED) {
+                _loadFailed.value = true;
+              }
+            },
+            onReceivedHttpError: (_, request, response) {
+              if (loadErrorMessage != null && request.isForMainFrame == true) {
+                _loadFailed.value = true;
+              }
+            },
+            onUpdateVisitedHistory: (_, _, _) async {
+              canGoBack.value =
+                  await webViewController.value?.canGoBack() ?? false;
+            },
+            onTitleChanged: (_, title) {
+              appBarController.title.value = switch (forceTitle == null) {
+                true => title,
+                false => forceTitle,
+              };
+            },
+            onGeolocationPermissionsShowPrompt: (controller, origin) async {
+              // should be deal individually (ask for user agreement)
+              return GeolocationPermissionShowPromptResponse(
+                origin: origin,
+                allow: true,
+                retain: true,
+              );
+            },
+            onCloseWindow: (_) => Get.back(),
+          ),
+          if (loadErrorMessage != null)
+            Obx(() {
+              if (!_loadFailed.value) return const SizedBox.shrink();
+              return ColoredBox(
+                color: TPColors.white,
+                child: SafeArea(
+                  child: Center(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(loadErrorMessage!, textAlign: TextAlign.center),
+                          const SizedBox(height: 16),
+                          TPButton.primary(
+                            text: '重新載入',
+                            onPressed: () async {
+                              final controller = webViewController.value;
+                              if (controller != null) {
+                                await _loadUrl(controller);
+                              }
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }),
+        ],
       ),
     );
   }
